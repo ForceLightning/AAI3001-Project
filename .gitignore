@@ -266,3 +266,6 @@ $RECYCLE.BIN/
 
 # Data folders
 data/
+
+# Models
+models/

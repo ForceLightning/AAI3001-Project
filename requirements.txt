@@ -12,3 +12,6 @@ torchinfo==1.8.0
 fastai==2.7.13
 scikit-multilearn==0.2.0
 foolbox==3.3.3
+scikit-image==0.22.0
+lxml==4.9.3
+pycocotools==2.0.7

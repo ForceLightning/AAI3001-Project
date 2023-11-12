@@ -28,6 +28,9 @@ torchinfo = "*"
 fastai = "*"
 scikit-multilearn = "*"
 foolbox = "*"
+scikit-image = "*"
+lxml = "*"
+pycocotools = "*"
 
 [dev-packages]
 autopep8 = "*"
