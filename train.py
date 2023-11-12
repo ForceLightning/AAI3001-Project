@@ -76,12 +76,10 @@ def main():
             dls=dataloader, arch=resnet34, metrics=fastai.metrics.JaccardCoeff(), cbs=[
                 MixedPrecision(),
                 CSVLogger(fname=f"{MODELS_DIR}/fold_{fold}.csv"),
-                SaveModelCallback(fname=f"fold_{fold}"),
+                SaveModelCallback(fname=f"fold_{fold}_best"),
                 ShowGraphCallback()
             ], normalize=False, pretrained=True, n_out=2, loss_func=CombinedLoss())
         learn.fine_tune(NUM_EPOCHS, base_lr=1e-3, freeze_epochs=3)
-        learn.recorder.plot_loss()
-        learn.recoder.plot_metrics()
         learn.save(f"fold_{fold}_final.pth")
 
 
