@@ -4,6 +4,7 @@ from typing import Callable
 import numpy as np
 import skimage
 import torch
+import cv2
 from lxml import etree
 from PIL import Image
 from torch.utils.data import Dataset
@@ -60,17 +61,15 @@ class MoNuSegDataset(Dataset):
         with open(xml_path, 'r', encoding='utf-8') as f:
             tree = etree.parse(f)
         root = tree.getroot()
-        regions = root.find('Annotation').find('Regions').findall('Region')
-        mask = np.zeros(image_shape, dtype=bool)
-        for region in regions:
-            vertices = region.find('Vertices').findall('Vertex')
-            x = []
-            y = []
-            for vertex in vertices:
-                x.append(float(vertex.attrib['X']))
-                y.append(float(vertex.attrib['Y']))
-            poly = np.array([x, y]).T
-            mask = self._get_mask(mask, poly, image_shape)
+        contours = []
+        for region in root.findall('Annotation/Regions/Region/Vertices'):
+            coords = []
+            for vertex in region:
+                coords.append((float(vertex.attrib['X']),
+                               float(vertex.attrib['Y'])))
+            contour = np.array(coords, dtype=np.int32)
+            contours.append(contour)
+        mask = self._get_mask(contours, image_shape)
 
         mask = torch.from_numpy(mask).to(torch.int64)
         target = tv_tensors.Mask(mask)
@@ -78,10 +77,13 @@ class MoNuSegDataset(Dataset):
 
     def _get_mask(
         self,
-        mask: np.ndarray,
-        polys: np.ndarray,
-        image_shape: tuple  # (rows, cols), origin is top left corner.
+        contours: list[np.ndarray],
+        image_shape: tuple
     ) -> np.ndarray[bool]:
-        new_mask = skimage.draw.polygon2mask(image_shape, polys)
-        mask = np.logical_or(mask, new_mask)
-        return mask
+        rendered_annotations = np.zeros(image_shape, dtype=np.uint8)
+        cv2.drawContours(rendered_annotations, contours, -1, (0, 255, 0))
+        for contour in contours:
+            cv2.fillPoly(rendered_annotations, pts=np.array(
+                [contour], np.int32), color=(255, 255, 255))
+        rendered_annotations = rendered_annotations.astype(bool)
+        return rendered_annotations

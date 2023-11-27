@@ -268,4 +268,4 @@ $RECYCLE.BIN/
 data/
 
 # Models
-models/
+models**/

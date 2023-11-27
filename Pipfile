@@ -14,8 +14,8 @@ verify_ssl = true
 name = "downloadpytorch"
 
 [packages]
-torchvision = {version = "==0.16.0", index = "downloadpytorch"}
-torch = {version = "==2.1.0", index = "downloadpytorch"}
+torchvision = { index = "downloadpytorch"}
+torch = { index = "downloadpytorch"}
 numpy = "==1.26.1"
 scikit-learn = "==1.3.2"
 scipy = "==1.11.3"
@@ -31,6 +31,7 @@ foolbox = "*"
 scikit-image = "*"
 lxml = "*"
 pycocotools = "*"
+opencv-python-headless = "*"
 
 [dev-packages]
 autopep8 = "*"

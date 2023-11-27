@@ -2,22 +2,22 @@ import os
 
 import fastai
 import numpy as np
-from sklearn import base
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 from fastai.callback.all import (CSVLogger, MixedPrecision, SaveModelCallback,
                                  ShowGraphCallback)
-from fastai.vision.all import SegmentationDataLoaders, resnet34, unet_learner, DataLoader
+from fastai.vision.all import (BCEWithLogitsLossFlat, DataLoader,
+                               SegmentationDataLoaders, resnet34, unet_learner)
 from PIL import Image
+from sklearn import base
 from sklearn.model_selection import KFold
 from torch.utils.data import Subset
 from torchvision.transforms import v2
 from tqdm.auto import tqdm
 
 from utils.dataset import MoNuSegDataset
-from utils.focaldiceloss import CombinedLoss
 
 # Set to False if you don't want to use CUDA
 ROOT_DIR = "./data/MoNuSeg 2018 Training Data/MoNuSeg 2018 Training Data"
@@ -46,8 +46,7 @@ def main():
     valid_transform = v2.Compose([
         v2.ToImage(),
         v2.ToDtype(torch.float32, scale=True),
-        v2.RandomResizedCrop(
-            256, interpolation=v2.InterpolationMode.NEAREST, antialias=True),
+        v2.Resize(256, interpolation=v2.InterpolationMode.NEAREST),
         v2.Normalize(mean=[0.485, 0.456, 0.406], std=[
                      0.229, 0.224, 0.225])
     ])
@@ -73,14 +72,14 @@ def main():
 
         dataloader = SegmentationDataLoaders(train_dl, valid_dl)
         learn = unet_learner(
-            dls=dataloader, arch=resnet34, metrics=fastai.metrics.JaccardCoeff(), cbs=[
+            dls=dataloader, arch=resnet34, metrics=fastai.metrics.Dice(), cbs=[
                 MixedPrecision(),
                 CSVLogger(fname=f"{MODELS_DIR}/fold_{fold}.csv"),
                 SaveModelCallback(fname=f"fold_{fold}_best"),
                 ShowGraphCallback()
-            ], normalize=False, pretrained=True, n_out=2, loss_func=CombinedLoss())
-        learn.fine_tune(NUM_EPOCHS, base_lr=1e-3, freeze_epochs=3)
-        learn.save(f"fold_{fold}_final.pth")
+            ], normalize=False, pretrained=True, n_out=1, loss_func=BCEWithLogitsLossFlat())
+        learn.fine_tune(NUM_EPOCHS, base_lr=3e-3, freeze_epochs=5, pct_start=0.2)
+        learn.save(f"fold_{fold}_final")
 
 
 if __name__ == "__main__":
