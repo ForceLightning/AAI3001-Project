@@ -91,6 +91,11 @@ def main():
                         freeze_epochs=5, pct_start=0.2)
         learn.save(f"fold_{fold}_final")
 
+        train_dl._iterator._shutdown_workers()
+        valid_dl._iterator._shutdown_workers()
+        del train_dl
+        del valid_dl
+
 
 if __name__ == "__main__":
     main()
