@@ -2,25 +2,25 @@ import os
 
 import fastai
 import numpy as np
-from sympy import per
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from fastai.data.all import DataLoaders
 from fastai.callback.all import (CSVLogger, MixedPrecision, SaveModelCallback,
                                  ShowGraphCallback)
+from fastai.data.all import DataLoaders
 from fastai.vision.all import (BCEWithLogitsLossFlat, DataLoader,
-                               SegmentationDataLoaders, resnet34, unet_learner, ResNet34_Weights)
-from fastai.vision.learner import create_unet_model, Learner
+                               ResNet34_Weights, SegmentationDataLoaders,
+                               resnet34, unet_learner)
+from fastai.vision.learner import Learner, create_unet_model
 from PIL import Image
-from sklearn import base
 from sklearn.model_selection import KFold
 from torch.utils.data import Subset
 from torchvision.transforms import v2
 from tqdm.auto import tqdm
 
 from utils.dataset import MoNuSegDataset, MultiEpochsDataLoader
+from utils.lossmetrics import BinaryDice
 
 # Set to False if you don't want to use CUDA
 ROOT_DIR = "./data/MoNuSeg 2018 Training Data/MoNuSeg 2018 Training Data"
@@ -77,10 +77,11 @@ def main():
 
         dataloader = DataLoaders(train_dl, valid_dl)
 
+        torch.manual_seed(42) # for reproducibility
         model = create_unet_model(
             resnet34, n_out=1, img_size=(256, 256), pretrained=True, weights=ResNet34_Weights.DEFAULT)
 
-        learn = Learner(dls=dataloader, model=model, metrics=fastai.metrics.Dice(), cbs=[
+        learn = Learner(dls=dataloader, model=model, metrics=BinaryDice(), cbs=[
             MixedPrecision(),
             CSVLogger(fname=f"{MODELS_DIR}/fold_{fold}.csv"),
             SaveModelCallback(fname=f"fold_{fold}_best"),
