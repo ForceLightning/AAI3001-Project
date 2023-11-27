@@ -7,7 +7,7 @@ import torch
 import cv2
 from lxml import etree
 from PIL import Image
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from torchvision import tv_tensors
 from torchvision.transforms import v2
 
@@ -17,7 +17,6 @@ class MoNuSegDataset(Dataset):
         self,
         root: str,
         transform: v2.Compose = None,
-        target_transform: Callable = None,
     ) -> None:
         super().__init__()
         self.root = root
@@ -25,7 +24,6 @@ class MoNuSegDataset(Dataset):
             v2.ToImage(),
             v2.ToDtype(torch.float32, scale=True)
         ]) if transform is None else transform
-        self.target_transform = target_transform
         self.images = []
         self.annotations = []
         self._init_dataset()
@@ -45,9 +43,7 @@ class MoNuSegDataset(Dataset):
         annotation = self._annotation_to_target(
             image_shape, self.annotations[idx])
         if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            annotation = self.target_transform(annotation)
+            image, annotation = self.transform(image, annotation)
         return image, annotation
 
     def __len__(self):
@@ -87,3 +83,31 @@ class MoNuSegDataset(Dataset):
                 [contour], np.int32), color=(255, 255, 255))
         rendered_annotations = rendered_annotations.astype(bool)
         return rendered_annotations
+
+
+class MultiEpochsDataLoader(DataLoader):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._DataLoader__initialized = False
+        if self.batch_sampler is None:
+            self.sampler = _RepeatSampler(self.sampler)
+        else:
+            self.batch_sampler = _RepeatSampler(self.batch_sampler)
+        self._DataLoader__initialized = True
+        self.iterator = super().__iter__()
+
+    def __len__(self):
+        return len(self.sampler) if self.batch_sampler is None else len(self.batch_sampler.sampler)
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield next(self.iterator)
+
+
+class _RepeatSampler(object):
+    def __init__(self, sampler):
+        self.sampler = sampler
+
+    def __iter__(self):
+        while True:
+            yield from iter(self.sampler)
