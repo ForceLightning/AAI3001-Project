@@ -1,4 +1,5 @@
 import os
+import gc
 
 import fastai
 import numpy as np
@@ -10,8 +11,8 @@ from fastai.callback.all import (CSVLogger, MixedPrecision, SaveModelCallback,
                                  ShowGraphCallback)
 from fastai.data.all import DataLoaders
 from fastai.vision.all import (BCEWithLogitsLossFlat, DataLoader,
-                               ResNet34_Weights, SegmentationDataLoaders,
-                               resnet34, unet_learner)
+                               resnet50, SegmentationDataLoaders,
+                               ResNet50_Weights, unet_learner)
 from fastai.vision.learner import Learner, create_unet_model
 from PIL import Image
 from sklearn.model_selection import KFold
@@ -20,14 +21,14 @@ from torchvision.transforms import v2
 from tqdm.auto import tqdm
 
 from utils.dataset import MoNuSegDataset, MultiEpochsDataLoader
-from utils.lossmetrics import BinaryDice
+from utils.lossmetrics import BinaryDice, CombinedBCEDiceLoss
 
 # Set to False if you don't want to use CUDA
 ROOT_DIR = "./data/MoNuSeg 2018 Training Data/MoNuSeg 2018 Training Data"
 USE_CUDA = torch.cuda.is_available() and True
 DEVICE = torch.device("cuda" if USE_CUDA else "cpu")
 MODELS_DIR = "./models/"
-BATCH_SIZE = 8
+BATCH_SIZE = 4
 NUM_WORKERS = 4
 NUM_EPOCHS = 10
 NUM_FOLDS = 5
@@ -77,16 +78,16 @@ def main():
 
         dataloader = DataLoaders(train_dl, valid_dl)
 
-        torch.manual_seed(42) # for reproducibility
-        model = create_unet_model(
-            resnet34, n_out=1, img_size=(256, 256), pretrained=True, weights=ResNet34_Weights.DEFAULT)
+        torch.manual_seed(42)  # for reproducibility
+        model = create_unet_model(resnet50, n_out=1, img_size=(256, 256),
+                                  pretrained=True, weights=ResNet50_Weights.DEFAULT)
 
         learn = Learner(dls=dataloader, model=model, metrics=BinaryDice(), cbs=[
             MixedPrecision(),
             CSVLogger(fname=f"{MODELS_DIR}/fold_{fold}.csv"),
             SaveModelCallback(fname=f"fold_{fold}_best"),
             ShowGraphCallback()
-        ], loss_func=BCEWithLogitsLossFlat())
+        ], loss_func=CombinedBCEDiceLoss(alpha=0.5, reduction="mean"))
 
         learn.fine_tune(NUM_EPOCHS, base_lr=3e-5,  # determined from lr_find()
                         freeze_epochs=5, pct_start=0.2)
@@ -94,8 +95,18 @@ def main():
 
         train_dl._iterator._shutdown_workers()
         valid_dl._iterator._shutdown_workers()
+        del train_dl.batch_sampler.sampler
+        del train_dl.batch_sampler
         del train_dl
+        del valid_dl.batch_sampler.sampler
+        del valid_dl.batch_sampler
         del valid_dl
+        del dataloader
+        del model, learn.model, learn.dls, learn.yb, learn.xb, learn.pred, learn.cbs, learn
+        gc.collect()
+
+        with torch.no_grad():
+            torch.cuda.empty_cache()
 
 
 if __name__ == "__main__":

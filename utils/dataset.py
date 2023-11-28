@@ -2,7 +2,6 @@ import os
 from typing import Callable
 
 import numpy as np
-import skimage
 import torch
 import cv2
 from lxml import etree
@@ -17,6 +16,7 @@ class MoNuSegDataset(Dataset):
         self,
         root: str,
         transform: v2.Compose = None,
+        train: bool = True
     ) -> None:
         super().__init__()
         self.root = root
@@ -26,16 +26,24 @@ class MoNuSegDataset(Dataset):
         ]) if transform is None else transform
         self.images = []
         self.annotations = []
+        self.train = train
         self._init_dataset()
 
     def _init_dataset(self) -> None:
-        for file in os.listdir(os.path.join(self.root, 'Tissue Images')):
-            if file.endswith('.tif'):
-                self.images.append(os.path.join(
-                    self.root, 'Tissue Images', file))
-                xml_file = file.replace('.tif', '.xml')
-                self.annotations.append(os.path.join(
-                    self.root, 'Annotations', xml_file))
+        if self.train:
+            for file in os.listdir(os.path.join(self.root, 'Tissue Images')):
+                if file.endswith('.tif'):
+                    self.images.append(os.path.join(
+                        self.root, 'Tissue Images', file))
+                    xml_file = file.replace('.tif', '.xml')
+                    self.annotations.append(os.path.join(
+                        self.root, 'Annotations', xml_file))
+        else:
+            for file in os.listdir(self.root):
+                if file.endswith('.tif'):
+                    self.images.append(os.path.join(self.root, file))
+                    xml_file = file.replace('.tif', '.xml')
+                    self.annotations.append(os.path.join(self.root, xml_file))
 
     def __getitem__(self, idx):
         image = Image.open(self.images[idx])
