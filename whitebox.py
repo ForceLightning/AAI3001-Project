@@ -15,7 +15,7 @@ from fastai.vision.learner import Learner, create_unet_model
 from torchvision.transforms import v2, ToPILImage
 import torch
 import torch.nn.functional as F
-from fastai.torch_core import to_detach
+from utils.lossmetrics import PixelAccuracy
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     print(preds.size())
     image_index = 0
 
-    epsilons = [0.2 * i for i in range(6)]
+    # epsilons = [0.2 * i for i in range(6)]
 
     # for epsilon in epsilons:
     #     perturbed_image = fgsm_attack(model, image_tensor, annotation, epsilon)
@@ -101,9 +101,9 @@ if __name__ == "__main__":
 
     #     # plt.show()
 
-    epsilons = [0.5 * i for i in range(6)]
-
-    plt.figure(figsize=(15, 10))
+    epsilons = [100 * i for i in range(6)]
+    
+    # plt.figure(figsize=(15, 10))
 
     for i, epsilon in enumerate(epsilons, 1):
         perturbed_image = fgsm_attack(model, image_tensor, annotation, epsilon)
@@ -111,10 +111,13 @@ if __name__ == "__main__":
 
         # Evaluate the model on the perturbed image
         perturbed_outputs = model(perturbed_image)
-        perturbed_prediction = perturbed_outputs.cpu().detach().numpy()
+        perturbed_prediction = perturbed_outputs #.cpu().detach().numpy()
+        pa = PixelAccuracy(prediction_mask=perturbed_prediction, target_mask=annotation, device=DEVICE)
+        acc = pa.pixel_accuracy()
+        print("Accuracy: " , acc)
 
-        plt.subplot(2, 3, i)
-        plt.imshow(perturbed_prediction[0][0], cmap="gray")
-        plt.title("Epsilon: {}".format(epsilon))
+    #     plt.subplot(2, 3, i)
+    #     plt.imshow(perturbed_prediction[0][0], cmap="gray")
+    #     plt.title("Epsilon: {}".format(epsilon))
 
-    plt.show()
+    # plt.show()
