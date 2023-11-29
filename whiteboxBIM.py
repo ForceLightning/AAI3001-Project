@@ -16,9 +16,11 @@ from fastai.vision.learner import Learner, create_unet_model
 from torchvision.transforms import v2
 from tqdm.auto import tqdm
 from utils.lossmetrics import PixelAccuracy
+import csv
+import pandas as pd
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-ROOT_DIR = "MoNuSegTestData"
+ROOT_DIR = "./data/MoNuSegTestData"
 BATCH_SIZE = 4
 NUM_WORKERS = 4
 PERSISTENT_WORKERS = True
@@ -74,39 +76,135 @@ if __name__ == "__main__":
     learn.load("fold_0_best")
 
     model.eval().to(DEVICE)
-   
-    image, annotation = test_data.__getitem__(0)
-    image_tensor = valid_transform(image).unsqueeze(0).to(DEVICE)
+    
+    images = []
+    annotations = []
+
+    epsilons = [0.5 * i for i in range(20)]
+    alphas = [0.2, 0.5, 1.0, 2.0, 5.0]  
+    num_iterations = 10
+
+    # epsilons = [0.5 * i for i in range(5)]
+    # alphas = [0.2, 0.5]
+    # num_iterations = 2
+ 
+    
+    for i in range(test_data.__len__()):
+        image, annotation = test_data.__getitem__(i)
+
+        image_tensor = valid_transform(image).unsqueeze(0).to(DEVICE)
+        images.append(image_tensor)
+
+        annotations.append(annotation)
+    
+    with open("results.csv", "w") as f:
+        writer = csv.writer(f, delimiter=",")
+        writer.writerow(["Epsilon", "Alpha", "Mean", "Standard Deviation"])
 
     preds, _ = learn.get_preds(dl=test_dl)
-    print(preds.size())
-    image_index = 0
-
-    epsilons = [0.5 * i for i in range(4)]
-    alphas = [0.2, 0.5, 1.0]  
-    num_iterations = 2 
-
-
-    plt.figure(figsize=(15, 10))
-
     for i, epsilon in enumerate(epsilons, 1):
+        print("Epsilon value:", epsilon)
+
         for alpha in alphas:
-            perturbed_image = bim_attack(model, image_tensor, annotation, epsilon, alpha, num_iterations)
-            print("Epsilon value:", epsilon)
+            print("Alpha value:", alpha)
+            original_total_acc = []
+            perturbed_total_acc = []
 
-            # Evaluate the model on the perturbed image
-            perturbed_outputs = model(perturbed_image)
-            perturbed_prediction = perturbed_outputs #.cpu().detach().numpy()
+            for j, (image, annotation) in enumerate(zip(images, annotations), 0):
+                print("Image:", j)
+                perturbed_image = bim_attack(model, image, annotation, epsilon, alpha, num_iterations)
 
-            original_prediction = preds[0] #.cpu().detach().numpy()
+                # Evaluate the model on the perturbed image
+                perturbed_outputs = model(perturbed_image)
+                perturbed_prediction = perturbed_outputs #.cpu().detach().numpy()
 
-            original_pa = PixelAccuracy(prediction_mask=original_prediction, target_mask=annotation)
-            perturbed_pa = PixelAccuracy(prediction_mask=perturbed_prediction, target_mask=annotation)
+                original_prediction = preds[j] #.cpu().detach().numpy()
 
-            original_accuracy = original_pa.pixel_accuracy()
-            perturbed_accuracy = perturbed_pa.pixel_accuracy()
+                original_pa = PixelAccuracy(prediction_mask=original_prediction, target_mask=annotation)
+                perturbed_pa = PixelAccuracy(prediction_mask=perturbed_prediction, target_mask=annotation)
 
-        print("Original Accuracy: {:.2%}, Perturbed Accuracy: {:.2%}".format(original_accuracy, perturbed_accuracy))
+                original_accuracy = original_pa.pixel_accuracy()
+                perturbed_accuracy = perturbed_pa.pixel_accuracy()
+
+                original_total_acc.append(original_accuracy)
+                perturbed_total_acc.append(perturbed_accuracy)
+
+            mean = sum(perturbed_total_acc) / len(images)
+            std = np.std(perturbed_total_acc)
+
+            with open("results.csv", "a") as f:
+                writer = csv.writer(f, delimiter=",")
+                writer.writerow([epsilon, alpha, mean, std])
+
+                # print("Original Accuracy: {:.2%}, Perturbed Accuracy: {:.2%}".format(original_accuracy, perturbed_accuracy))
+
+                # if (alpha == 0.2 and epsilon == 3.0) or (alpha == 5.0 and epsilon == 7.0):
+                #     plt.figure(figsize=(20, 10))
+                #     plt.subplot(2, 2, 1)  # 2 rows, 2 columns, index 1
+                #     plt.imshow(image.numpy().transpose(1, 2, 0))
+                #     plt.title("Original Image")
+
+                #     plt.subplot(2, 2, 2)  # 2 rows, 2 columns, index 4
+                #     plt.imshow(perturbed_image[0].cpu().detach().numpy().transpose(1, 2, 0))
+                #     plt.title("Perturbed Image")
+
+                #     plt.subplot(2, 2, 3)  # 2 rows, 2 columns, index 2
+                #     plt.imshow(original_prediction[0].cpu().detach().numpy(), cmap="gray")
+                #     plt.title("Original Prediction")
+
+                #     plt.subplot(2, 2, 4)  # 2 rows, 2 columns, index 3
+                #     plt.imshow(perturbed_prediction[0].cpu().detach().numpy().transpose(1, 2, 0), cmap="gray")
+                #     plt.title("Perturbed Prediction")
+
+                #     plt.show()
+
+
+                # if alpha == 5.0 and epsilon == 7.0:
+                #     plt.figure(figsize=(15, 10))
+                #     plt.subplot(1, 3, 1)
+                #     plt.imshow(image.numpy().transpose(1, 2, 0))
+                #     plt.title("Original Image")
+
+                #     plt.subplot(1, 3, 2)
+                #     plt.imshow(original_prediction[0].cpu().detach().numpy(), cmap="gray")
+                #     plt.title("Original Prediction")
+
+                #     plt.subplot(1, 3, 3)
+                #     plt.imshow(perturbed_prediction[0].cpu().detach().numpy().transpose(1, 2, 0), cmap="gray")
+                #     plt.title("Perturbed Prediction")
+
+                #     plt.subplot(1, 3, 4)
+                #     plt.imshow(perturbed_image[0].cpu().detach().numpy().transpose(1, 2, 0))
+                #     plt.title("Perturbed Image")
+
+                #     plt.show()
+        
+    df = pd.read_csv("results.csv")
+
+    # Create subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+    # Plot mean accuracy
+    for alpha in df['Alpha'].unique():
+        subset = df[df['Alpha'] == alpha]
+        ax1.plot(subset['Epsilon'], subset['Mean'], label=f'Alpha={alpha}')
+
+    ax1.set_xlabel('Epsilon')
+    ax1.set_ylabel('Mean Pixel Accuracy')
+    ax1.legend(title='Alpha')
+    ax1.set_title('Epsilon vs Mean Pixel Accuracy for different Alpha values')
+
+    # Plot standard deviation
+    for alpha in df['Alpha'].unique():
+        subset = df[df['Alpha'] == alpha]
+        ax2.plot(subset['Epsilon'], subset['Standard Deviation'], label=f'Alpha={alpha}')
+
+    ax2.set_xlabel('Epsilon')
+    ax2.set_ylabel('Standard Deviation')
+    ax2.legend(title='Alpha')
+    ax2.set_title('Epsilon vs Standard Deviation for different Alpha values')
+
+    plt.show()
 
 
     # for i, epsilon in enumerate(epsilons, 1):
