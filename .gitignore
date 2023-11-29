@@ -269,3 +269,6 @@ data/
 
 # Models
 models**/
+
+# Adversarial output
+output/**
