@@ -18,7 +18,7 @@ from tqdm.auto import tqdm
 from utils.lossmetrics import PixelAccuracy
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-ROOT_DIR = "MoNuSegTestData"
+ROOT_DIR = "data/MoNuSegTestData"
 BATCH_SIZE = 4
 NUM_WORKERS = 4
 PERSISTENT_WORKERS = True
