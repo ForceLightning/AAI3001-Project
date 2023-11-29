@@ -15,10 +15,11 @@ from fastai.vision.all import (
 from fastai.vision.learner import Learner, create_unet_model
 from torchvision.transforms import v2
 from tqdm.auto import tqdm
+from utils.lossmetrics import PixelAccuracy
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ROOT_DIR = "MoNuSegTestData"
-BATCH_SIZE = 8
+BATCH_SIZE = 4
 NUM_WORKERS = 4
 PERSISTENT_WORKERS = True
 
@@ -44,14 +45,14 @@ def bim_attack(model, images, labels, epsilon, alpha, num_iterations):
 
     return images
 
-def compute_dice_score(y_true, y_pred):
-    y_true = torch.tensor(y_true, dtype=torch.float32)
-    y_pred = torch.tensor(y_pred, dtype=torch.float32)
+# def compute_dice_score(y_true, y_pred):
+#     y_true = torch.tensor(y_true, dtype=torch.float32)
+#     y_pred = torch.tensor(y_pred, dtype=torch.float32)
 
-    intersection = torch.sum(y_true * y_pred)
-    union = torch.sum(y_true) + torch.sum(y_pred)
-    dice = (2.0 * intersection) / (union + 1e-8)
-    return dice.item()
+#     intersection = torch.sum(y_true * y_pred)
+#     union = torch.sum(y_true) + torch.sum(y_pred)
+#     dice = (2.0 * intersection) / (union + 1e-8)
+#     return dice.item()
 
 
 if __name__ == "__main__":
@@ -81,43 +82,32 @@ if __name__ == "__main__":
     print(preds.size())
     image_index = 0
 
-    epsilons = [0.2 * i for i in range(6)]
-    alphas = [0.05, 0.1, 0.2]  
-    num_iterations = 10 
+    epsilons = [0.5 * i for i in range(4)]
+    alphas = [0.2, 0.5, 1.0]  
+    num_iterations = 2 
+
 
     plt.figure(figsize=(15, 10))
 
-    best_perturbations = {} 
-
-    for i, epsilon in enumerate(tqdm(epsilons, desc="Epsilons"), 1):  
-        best_alpha = None
-        best_perturbed_image = None
-        best_dice_score = 0.0 
-
-        for alpha in tqdm(alphas, desc="Alphas", leave=False):
-            perturbed_image = bim_attack(model, image_tensor, annotation, epsilon, alpha, num_iterations)
-
-            perturbed_outputs = model(perturbed_image)
-            perturbed_prediction = perturbed_outputs.cpu().detach().numpy()
-
-            # Get best of alpha
-            dice_score = compute_dice_score(annotation, perturbed_prediction[0][0])
-
-            if dice_score > best_dice_score:
-                best_dice_score = dice_score
-                best_alpha = alpha
-                best_perturbed_image = perturbed_image
-
-        best_perturbations[epsilon] = best_perturbed_image.cpu().detach().numpy()
-
     for i, epsilon in enumerate(epsilons, 1):
-        plt.subplot(2, 3, i)
-        plt.imshow(best_perturbations[epsilon][0][0], cmap="gray")
-        plt.title("Epsilon: {}, Best Alpha: {}".format(epsilon, best_alpha))
+        for alpha in alphas:
+            perturbed_image = bim_attack(model, image_tensor, annotation, epsilon, alpha, num_iterations)
+            print("Epsilon value:", epsilon)
 
-    plt.show()
+            # Evaluate the model on the perturbed image
+            perturbed_outputs = model(perturbed_image)
+            perturbed_prediction = perturbed_outputs #.cpu().detach().numpy()
 
-    # plt.figure(figsize=(15, 10))
+            original_prediction = preds[0] #.cpu().detach().numpy()
+
+            original_pa = PixelAccuracy(prediction_mask=original_prediction, target_mask=annotation)
+            perturbed_pa = PixelAccuracy(prediction_mask=perturbed_prediction, target_mask=annotation)
+
+            original_accuracy = original_pa.pixel_accuracy()
+            perturbed_accuracy = perturbed_pa.pixel_accuracy()
+
+        print("Original Accuracy: {:.2%}, Perturbed Accuracy: {:.2%}".format(original_accuracy, perturbed_accuracy))
+
 
     # for i, epsilon in enumerate(epsilons, 1):
     #     for alpha in alphas:
@@ -133,3 +123,34 @@ if __name__ == "__main__":
 
     # plt.show()
 
+    # plt.figure(figsize=(15, 10))
+
+    # best_perturbations = {} 
+
+    # for i, epsilon in enumerate(tqdm(epsilons, desc="Epsilons"), 1):  
+    #     best_alpha = None
+    #     best_perturbed_image = None
+    #     best_dice_score = 0.0 
+
+    #     for alpha in tqdm(alphas, desc="Alphas", leave=False):
+    #         perturbed_image = bim_attack(model, image_tensor, annotation, epsilon, alpha, num_iterations)
+
+    #         perturbed_outputs = model(perturbed_image)
+    #         perturbed_prediction = perturbed_outputs.cpu().detach().numpy()
+
+    #         # Get best of alpha
+    #         dice_score = compute_dice_score(annotation, perturbed_prediction[0][0])
+
+    #         if dice_score > best_dice_score:
+    #             best_dice_score = dice_score
+    #             best_alpha = alpha
+    #             best_perturbed_image = perturbed_image
+
+    #     best_perturbations[epsilon] = best_perturbed_image.cpu().detach().numpy()
+
+    # for i, epsilon in enumerate(epsilons, 1):
+    #     plt.subplot(2, 3, i)
+    #     plt.imshow(best_perturbations[epsilon][0][0], cmap="gray")
+    #     plt.title("Epsilon: {}, Best Alpha: {}".format(epsilon, best_alpha))
+
+    # plt.show()
