@@ -110,29 +110,29 @@ if __name__ == "__main__":
     image = image.unsqueeze(0).to(DEVICE)
 
     # load model
-    model = create_unet_model(
-        resnet50,
-        n_out=1,
-        img_size=(256, 256),
-        pretrained=True,
-        weights=ResNet50_Weights.DEFAULT,
-    )
-    learn = Learner(
-        dls=test_dl,
-        model=model,
-        metrics=fastai.metrics.Dice(),
-        cbs=[
-            MixedPrecision(),
-        ],
-        loss_func=BCEWithLogitsLossFlat(),
-    )
-    learn.load("fold_0_best")
+    # model = create_unet_model(
+    #     resnet50,
+    #     n_out=1,
+    #     img_size=(256, 256),
+    #     pretrained=True,
+    #     weights=ResNet50_Weights.DEFAULT,
+    # )
+    # learn = Learner(
+    #     dls=test_dl,
+    #     model=model,
+    #     metrics=fastai.metrics.Dice(),
+    #     cbs=[
+    #         MixedPrecision(),
+    #     ],
+    #     loss_func=BCEWithLogitsLossFlat(),
+    # )
+    # learn.load("fold_0_best")
 
-    model.eval().to(DEVICE)
-
-    del model.layers[-1]
-    # model = models.resnet34(weights=models.ResNet34_Weights.DEFAULT).to(DEVICE)
     # model.eval().to(DEVICE)
+
+    # del model.layers[-1]
+    model = models.resnet34(weights=models.ResNet34_Weights.DEFAULT).to(DEVICE)
+    model.eval().to(DEVICE)
     # run normal model
     outputs = model(image)
     # labels, preds = outputs.data
@@ -155,10 +155,10 @@ if __name__ == "__main__":
 
     # attack =fb.attacks.deepfool.LinfDeepFoolAttack()
 
-    criterion = Misclassification(labels=labels.unsqueeze(0))
+    criterion = Misclassification(labels=labels)
     # criterion = BCEWithLogitsLossFlat()
     adversarial_images = attack(
-        model=foolbox_model, inputs=image, criterion=criterion, epsilons=epsilons
+        model=foolbox_model, inputs=image, criterion=criterion, epsilons=epsilons[0]
     )
 
     model_predictions = model(adversarial_images[0][0])
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     plt.imshow(diff)
     plt.title("Segmentation Result")
 
-    # plt.show()
+    plt.show()
 
     pred = (attack_preds > 0.5).to(torch.bool)
     pred = torch.tensor(pred)
