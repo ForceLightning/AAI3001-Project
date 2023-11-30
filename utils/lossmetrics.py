@@ -130,39 +130,61 @@ class CombinedBCEDiceLoss:
     def decodes(self, x): return x.argmax(dim=self.axis)
     def activation(self, x): return torch.sigmoid(x)
 
+def PixelAccuracy(predictions, targets):
+    # Predicted values are either 0 or 1 (Binary Mask)
+    predicted = predictions.float()
+    predicted = predictions > 0.5 
 
-# def compute_pixel_accuracy(original_image, perturbed_image):
-#     original_array = original_image.cpu().numpy()
-#     perturbed_array = perturbed_image.cpu().numpy()
+    print(predicted)
+    # Target values are either 0 or 1 (Binary Mask)
+    target = targets.float()
+    print(target)
+    correct_pixels = (predicted == target).float().sum()
+    total_pixels = target.numel()
+    accuracy = correct_pixels / total_pixels
+    return accuracy.item()
 
-#     original_mask = (original_array > 0.5).astype(np.uint8)
-#     perturbed_mask = (perturbed_array > 0.5).astype(np.uint8)
+def DiceCoefficient(predictions, targets):
+    inter = (predictions * targets).sum().item()
+    union = (predictions + targets).sum().item()
+    dice = 2 * inter / union if union > 0 else 0.0
+    return dice
 
-#     correct_pixels = np.sum(original_mask == perturbed_mask)
-#     total_pixels = original_mask.size
-#     pixel_accuracy = correct_pixels / total_pixels
 
-#     return pixel_accuracy
 
-class PixelAccuracy:
-    def __init__(self, prediction_mask, target_mask, device="cpu"):
-        self.predictions = prediction_mask.to(device)
-        self.targets = target_mask.to(device)
+# class PixelAccuracy:
+#     def __init__(self, prediction_mask, target_mask, device="cpu", prediction=True):
+#         self.predictions = prediction_mask.to(device)
+#         self.targets = target_mask.to(device)
+#         self.device = device
+#         self.check = prediction
 
-    def pixel_accuracy(self):
-        # Predicted values are either 0 or 1 (Binary Mask)
-        predicted = self.predictions.float()
+#     def __call__(self):
+#         # Predicted values are either 0 or 1 (Binary Mask)
+#         if self.check == True:
+#             predicted = self.predictions.float()
+#             predicted = torch.where(self.predictions > 0, torch.tensor(1.0), torch.tensor(0.0)).float()
+#         else:
+#             predicted = self.predictions.float()
 
-        predicted = torch.where(self.predictions > 0, torch.tensor(1.0), torch.tensor(0.0)).float()
+#         # Target values are either 0 or 1 (Binary Mask)
+#         target = self.targets.float()
 
-        # Target values are either 0 or 1 (Binary Mask)
-        target = self.targets.float()
+#         correct_pixels = (predicted == target).float().sum()
+#         total_pixels = target.numel()
+#         accuracy = correct_pixels / total_pixels
 
-        correct_pixels = (predicted == target).float().sum()
+#         return accuracy.item()
+    
+# class DiceCoefficient:
+#     def __init__(self, prediction_mask, target_mask, device="cpu"):
+#         self.predictions = prediction_mask.to(device)
+#         self.targets = target_mask.to(device)
+#         self.device = device
 
-        total_pixels = target.numel()
-
-        accuracy = correct_pixels / total_pixels
-
-        return accuracy.item()
+#     def __call__(self):
+#         inter = (self.predictions * self.targets).sum().item()
+#         union = (self.predictions + self.targets).sum().item()
+#         dice = 2 * inter / union if union > 0 else 0.0
+#         pred = pred.to(torch.bool).to(self.device)
 
