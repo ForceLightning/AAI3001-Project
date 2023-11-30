@@ -1,3 +1,6 @@
+"""
+This script is used to generate the plots for the FGSM attack on the whitebox model.
+"""
 import csv
 import gc
 import os
@@ -8,14 +11,13 @@ import torch
 from fastai.callback.all import MixedPrecision
 from fastai.vision.all import BCEWithLogitsLossFlat, ResNet50_Weights, resnet50
 from fastai.vision.learner import Learner, create_unet_model
-from torchvision.transforms import functional as F
 from torchvision.transforms import v2
 
 from utils.dataset import MoNuSegDataset, MultiEpochsDataLoader
 from utils.lossmetrics import DiceCoefficient, PixelAccuracy
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-ROOT_DIR = "./data/MoNuSegTestData"
+ROOT_DIR = os.path.join(os.path.dirname(__file__), "data", "MoNuSegTestData")
 BATCH_SIZE = 8
 NUM_WORKERS = 4
 NUM_EPOCHS = 10
