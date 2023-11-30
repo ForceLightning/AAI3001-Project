@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import torch.autograd as autograd
 import fastai
 import numpy as np
+from torchvision.utils import draw_segmentation_masks
 from torchvision.transforms import functional as F, ToPILImage
 from PIL import Image
 from foolbox import PyTorchModel, attacks
@@ -55,6 +56,16 @@ def bim_attack(model, images, labels, epsilon, alpha, num_iterations):
 #     union = torch.sum(y_true) + torch.sum(y_pred)
 #     dice = (2.0 * intersection) / (union + 1e-8)
 #     return dice.item()
+
+def show(imgs):
+    if not isinstance(imgs, list):
+        imgs = [imgs]
+    fig, axs = plt.subplots(ncols=len(imgs), squeeze=False)
+    for i, img in enumerate(imgs):
+        img = img.detach()
+        img = F.to_pil_image(img)
+        axs[0, i].imshow(np.asarray(img))
+        axs[0, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
 
 
 if __name__ == "__main__":
@@ -189,6 +200,9 @@ if __name__ == "__main__":
                     # plt.subplot(2, 2, 1)  # 2 rows, 2 columns, index 1
                     # plt.imshow(image.squeeze(0).cpu().detach().numpy().transpose(1, 2, 0))
                     # plt.title("Original Image")
+                    show(draw_segmentation_masks((image.squeeze(0) * 255).to(torch.uint8), original_prediction[0] > 0.5, alpha=1.0, colors=['red']))
+                    show(draw_segmentation_masks((perturbed_image[0] * 255).to(torch.uint8), perturbed_prediction[0] > 0.5, alpha=1.0, colors=['red']))
+                    plt.show()
 
                     # plt.subplot(2, 2, 2)  # 2 rows, 2 columns, index 4
                     # plt.imshow(perturbed_image[0].cpu().detach().numpy().transpose(1, 2, 0))
