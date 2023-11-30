@@ -129,23 +129,19 @@ class CombinedBCEDiceLoss:
     def decodes(self, x): return x.argmax(dim=self.axis)
     def activation(self, x): return torch.sigmoid(x)
 
-class PixelAccuracy:
-    def __init__(self, prediction_mask, target_mask, device="cpu"):
-        self.predictions = prediction_mask.to(device)
-        self.targets = target_mask.to(device)
+def PixelAccuracy(predictions, targets):
+    # Predicted values are either 0 or 1 (Binary Mask)
+    predicted = predictions.float()
+    predicted = predictions > 0.5 
+    # Target values are either 0 or 1 (Binary Mask)
+    target = targets.float()
+    correct_pixels = (predicted == target).float().sum()
+    total_pixels = target.numel()
+    accuracy = correct_pixels / total_pixels
+    return accuracy.item()
 
-    def pixel_accuracy(self):
-        # Predicted values are either 0 or 1 (Binary Mask)
-        predicted = self.predictions.float()
-
-        predicted = torch.where(self.predictions > 0, torch.tensor(1.0), torch.tensor(0.0)).float()
-        # Target values are either 0 or 1 (Binary Mask)
-        target = self.targets.float()
-
-        correct_pixels = (predicted == target).float().sum()
-
-        total_pixels = target.numel()
-
-        accuracy = correct_pixels / total_pixels
-
-        return accuracy.item()
+def DiceCoefficient(predictions, targets):
+    inter = (predictions * targets).sum().item()
+    union = (predictions + targets).sum().item()
+    dice = 2 * inter / union if union > 0 else 0.0
+    return dice
