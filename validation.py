@@ -20,7 +20,8 @@ VALID_DIR = os.path.join(os.path.dirname(os.path.realpath(
     __file__)), "data", "MoNuSeg 2018 Training Data", "MoNuSeg 2018 Training Data")
 TEST_DIR = os.path.join(os.path.dirname(
     os.path.realpath(__file__)), "data", "MoNuSegTestData")
-MODELS_DIR = "./models/"
+MODELS_DIR = os.path.join(os.path.dirname(
+    os.path.realpath(__file__)), "models")
 BATCH_SIZE = 4
 NUM_WORKERS = 4
 NUM_FOLDS = 5
