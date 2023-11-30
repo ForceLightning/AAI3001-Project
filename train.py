@@ -1,20 +1,12 @@
-import os
 import gc
+import os
 
-import fastai
-import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision
 from fastai.callback.all import (CSVLogger, MixedPrecision, SaveModelCallback,
                                  ShowGraphCallback)
 from fastai.data.all import DataLoaders
-from fastai.vision.all import (BCEWithLogitsLossFlat, DataLoader,
-                               resnet50, SegmentationDataLoaders,
-                               ResNet50_Weights, unet_learner)
+from fastai.vision.all import ResNet50_Weights, resnet50
 from fastai.vision.learner import Learner, create_unet_model
-from PIL import Image
 from sklearn.model_selection import KFold
 from torch.utils.data import Subset
 from torchvision.transforms import v2
@@ -23,11 +15,12 @@ from tqdm.auto import tqdm
 from utils.dataset import MoNuSegDataset, MultiEpochsDataLoader
 from utils.lossmetrics import BinaryDice, CombinedBCEDiceLoss
 
-# Set to False if you don't want to use CUDA
-ROOT_DIR = "./data/MoNuSeg 2018 Training Data/MoNuSeg 2018 Training Data"
+ROOT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                        "data", "MoNuSeg 2018 Training Data")
 USE_CUDA = torch.cuda.is_available() and True
 DEVICE = torch.device("cuda" if USE_CUDA else "cpu")
-MODELS_DIR = "./models/"
+MODELS_DIR = os.path.join(os.path.dirname(
+    os.path.realpath(__file__)), "models")
 BATCH_SIZE = 4
 NUM_WORKERS = 4
 NUM_EPOCHS = 10
@@ -84,7 +77,7 @@ def main():
 
         learn = Learner(dls=dataloader, model=model, metrics=BinaryDice(), cbs=[
             MixedPrecision(),
-            CSVLogger(fname=f"{MODELS_DIR}/fold_{fold}.csv"),
+            CSVLogger(fname=os.path.join(MODELS_DIR, f"fold_{fold}.csv")),
             SaveModelCallback(fname=f"fold_{fold}_best"),
             ShowGraphCallback()
         ], loss_func=CombinedBCEDiceLoss(alpha=0.5, reduction="mean"))
