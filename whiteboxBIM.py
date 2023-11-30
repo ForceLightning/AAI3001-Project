@@ -65,7 +65,7 @@ if __name__ == "__main__":
         v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])    
 
-    test_data = MoNuSegDataset(ROOT_DIR, transform=valid_transform)
+    test_data = MoNuSegDataset(ROOT_DIR, transform=valid_transform, train=False)
     test_dl = MultiEpochsDataLoader(test_data, batch_size=BATCH_SIZE,
                                     shuffle=False, num_workers=NUM_WORKERS,
                                     pin_memory=True, sampler=None,
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         model.eval().to(DEVICE)
 
         preds, _ = learn.get_preds(dl=test_dl)
-        preds = sigmoid(preds).to(DEVICE)
+        preds = preds.to(DEVICE)
 
         # Flatten
         # preds = preds.view(preds.shape[0], preds.shape[2], preds.shape[3])
@@ -145,14 +145,14 @@ if __name__ == "__main__":
                 #     print(original_prediction.shape)
                 #     print(annotation.shape)
                 #     # Compute the pixel accuracy
-                #     original_accuracy = PixelAccuracy(predictions=original_prediction, targets=annotation)
-                #     perturbed_accuracy = PixelAccuracy(predictions=perturbed_prediction, targets=annotation)
+                    original_accuracy = PixelAccuracy(predictions=original_prediction, targets=annotation)
+                    perturbed_accuracy = PixelAccuracy(predictions=perturbed_prediction, targets=annotation)
 
-                #     original_total_acc.append(original_accuracy)
-                #     perturbed_total_acc.append(perturbed_accuracy)
+                    original_total_acc.append(original_accuracy)
+                    perturbed_total_acc.append(perturbed_accuracy)
 
-                #     print("Original Pixel Accuracy:", original_accuracy)
-                #     print("Perturbed Pixel Accuracy:", perturbed_accuracy)
+                    print("Original Pixel Accuracy:", original_accuracy)
+                    print("Perturbed Pixel Accuracy:", perturbed_accuracy)
 
 
                 #     original_dice = DiceCoefficient(predictions=original_prediction, targets=annotation)
@@ -185,24 +185,24 @@ if __name__ == "__main__":
                 # print("Original Accuracy: {:.2%}, Perturbed Accuracy: {:.2%}".format(original_accuracy, perturbed_accuracy))
 
                 # if (alpha == 0.2 and epsilon == 3.0) or (alpha == 5.0 and epsilon == 7.0):
-                    plt.figure(figsize=(20, 10))
-                    plt.subplot(2, 2, 1)  # 2 rows, 2 columns, index 1
-                    plt.imshow(image.squeeze(0).cpu().detach().numpy().transpose(1, 2, 0))
-                    plt.title("Original Image")
+                    # plt.figure(figsize=(20, 10))
+                    # plt.subplot(2, 2, 1)  # 2 rows, 2 columns, index 1
+                    # plt.imshow(image.squeeze(0).cpu().detach().numpy().transpose(1, 2, 0))
+                    # plt.title("Original Image")
 
-                    plt.subplot(2, 2, 2)  # 2 rows, 2 columns, index 4
-                    plt.imshow(perturbed_image[0].cpu().detach().numpy().transpose(1, 2, 0))
-                    plt.title("Perturbed Image")
+                    # plt.subplot(2, 2, 2)  # 2 rows, 2 columns, index 4
+                    # plt.imshow(perturbed_image[0].cpu().detach().numpy().transpose(1, 2, 0))
+                    # plt.title("Perturbed Image")
 
-                    plt.subplot(2, 2, 3)  # 2 rows, 2 columns, index 2
-                    plt.imshow(original_prediction[0].cpu().detach().numpy(), cmap="gray")
-                    plt.title("Original Prediction")
+                    # plt.subplot(2, 2, 3)  # 2 rows, 2 columns, index 2
+                    # plt.imshow(original_prediction[0].cpu().detach().numpy(), cmap="gray")
+                    # plt.title("Original Prediction")
 
-                    plt.subplot(2, 2, 4)  # 2 rows, 2 columns, index 3
-                    plt.imshow(perturbed_prediction[0].cpu().detach().numpy().transpose(1, 2, 0), cmap="gray")
-                    plt.title("Perturbed Prediction")
+                    # plt.subplot(2, 2, 4)  # 2 rows, 2 columns, index 3
+                    # plt.imshow(perturbed_prediction[0].cpu().detach().numpy().transpose(1, 2, 0), cmap="gray")
+                    # plt.title("Perturbed Prediction")
 
-                    plt.show()
+                    # plt.show()
 
 
                 # if alpha == 5.0 and epsilon == 7.0:
