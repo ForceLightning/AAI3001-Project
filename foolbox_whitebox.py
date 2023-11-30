@@ -29,6 +29,7 @@ BATCH_SIZE = 1 # untested with other batch sizes
 NUM_WORKERS = 0
 NUM_FOLDS = 5
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+EPSILONS = [0.0, 1e-2, 1.5e-2, 3e-2, 6e-2, 1e-1, 3e-1]
 
 
 def main():
@@ -77,20 +78,19 @@ def main():
         criterion = BinaryTargetedMisclassification(desired_output)
 
         attack = BCELinfPGD()
-        epsilons = [0.0, 1e-2, 3e-2, 1e-1, 3e-1]
 
         accuracy = 0
 
         for batch_idx, (images, target_mask) in enumerate(tqdm(test_dl, position=1, desc="Batch")):
             images = images.to(DEVICE)
             raw_advs, clipped_advs, success = attack(
-                fmodel, images, criterion, epsilons=epsilons)
+                fmodel, images, criterion, epsilons=EPSILONS)
             robust_accuracy = 1 - success.detach().cpu().numpy().astype(float).mean(axis=-1)
             accuracy += robust_accuracy * images.shape[0]
 
             for i in range(images.shape[0]):
                 index = batch_idx * BATCH_SIZE + i
-                for j in range(len(epsilons)):
+                for j in range(len(EPSILONS)):
                     adv = clipped_advs[j][i]
                     adv = adv.permute(1, 2, 0).detach().cpu().numpy()
                     adv = (adv * 255).astype("uint8")

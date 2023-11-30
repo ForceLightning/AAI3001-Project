@@ -205,7 +205,7 @@ def k_fold_roc_curve(
         recall_threshes.append(np.mean(intermediate_rec_threshes))
 
         ax[0].plot(fpr_mean, tprs[-1],
-                   label=f"ROC {legend_key} {fold_idx + 1} (AUC = {aurocs[-1]:.2f})", alpha=.3)
+                   label=f"ROC {legend_key} {fold_idx + 1} (AUROC = {aurocs[-1]:.2f})", alpha=.3)
 
         ax[1].plot(recall_mean, precisions[-1],
                    label=f"PRC {legend_key} {fold_idx + 1} (AUPRC = {auprcs[-1]:.2f})", alpha=.3)

@@ -124,7 +124,7 @@ class CombinedBCEDiceLoss:
         self.bce = BCEWithLogitsLossFlat(axis=-1)
         self.dice = BinaryDiceLoss(axis=axis, eps=smooth, reduction=reduction)
 
-    def __call__(self, pred:torch.Tensor, targ:torch.Tensor):
+    def __call__(self, pred: torch.Tensor, targ: torch.Tensor):
         return self.bce(pred, targ) + self.alpha * self.dice(pred, targ)
 
     def decodes(self, x): return x.argmax(dim=self.axis)
@@ -140,7 +140,8 @@ class PixelAccuracy:
         # Predicted values are either 0 or 1 (Binary Mask)
         predicted = self.predictions.float()
 
-        predicted = torch.where(self.predictions > 0, torch.tensor(1.0), torch.tensor(0.0)).float()
+        predicted = torch.where(self.predictions > 0, torch.tensor(
+            1.0), torch.tensor(0.0)).float()
 
         # Target values are either 0 or 1 (Binary Mask)
         target = self.targets.float()
@@ -152,3 +153,7 @@ class PixelAccuracy:
         accuracy = correct_pixels / total_pixels
 
         return accuracy.item()
+
+    @property
+    def value(self):
+        return self.pixel_accuracy()
