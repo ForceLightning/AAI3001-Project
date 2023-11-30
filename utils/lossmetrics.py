@@ -157,3 +157,24 @@ class PixelAccuracy:
     @property
     def value(self):
         return self.pixel_accuracy()
+
+def PixelAccuracy(predictions, targets):
+    # Predicted values are either 0 or 1 (Binary Mask)
+    predicted = predictions.float()
+    predicted = predictions > 0.5 
+    # Target values are either 0 or 1 (Binary Mask)
+    target = targets.float()
+    correct_pixels = (predicted == target).float().sum()
+    total_pixels = target.numel()
+    accuracy = correct_pixels / total_pixels
+    return accuracy.item()
+
+def DiceCoefficient(predictions, targets):
+    # Intersecting pixels between the predicted and target masks
+    inter = (predictions * targets).sum().item()
+
+    # Union of pixels between the predicted and target masks
+    union = (predictions + targets).sum().item()
+    
+    dice = 2 * inter / union if union > 0 else 0.0
+    return dice
