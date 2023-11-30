@@ -269,3 +269,6 @@ data/
 
 # Models
 models**/
+
+# FGSM
+fgsm_images/**.png
