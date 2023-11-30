@@ -109,7 +109,8 @@ def main():
     test_dl_fastai = DataLoader(test_data, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS,
                                 pin_memory=True, sampler=None, shuffle=False, persistent_workers=True,
                                 device=DEVICE)
-
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR)
     with open(os.path.join(OUTPUT_DIR, "whitebox_test.csv"), "w") as f:
         writer = csv.writer(f)
         writer.writerow(["fold", "img", "eps", "acc", "dice"])
