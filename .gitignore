@@ -279,3 +279,5 @@ bim_images/*.png
 
 # Adversarial output
 output/**
+# FGSM
+fgsm_images/**.png
