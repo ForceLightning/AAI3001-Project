@@ -44,7 +44,5 @@ python whiteboxBIM.py
 python whiteboxBIM_eval.py
 ```
 
-### Black box
-
 # Licence
 [BSD-3 Clause](LICENSE.txt)
