@@ -17,7 +17,7 @@ from utils.dataset import MoNuSegDataset
 from utils.validation import k_fold_inference, k_fold_roc_curve
 
 VALID_DIR = os.path.join(os.path.dirname(os.path.realpath(
-    __file__)), "data", "MoNuSeg 2018 Training Data", "MoNuSeg 2018 Training Data")
+    __file__)), "data", "MoNuSeg 2018 Training Data")
 TEST_DIR = os.path.join(os.path.dirname(
     os.path.realpath(__file__)), "data", "MoNuSegTestData")
 MODELS_DIR = os.path.join(os.path.dirname(
@@ -65,7 +65,7 @@ def main():
     model_outputs = []
     for i in range(NUM_FOLDS):
         output = np.load(os.path.join(
-            f"{MODELS_DIR}", f"fold_{i}_valid_output.npz"))
+            MODELS_DIR, f"fold_{i}_valid_output.npz"))
         model_outputs.append(output)
         report = classification_report(
             y_true=output["y"].reshape(-1), y_pred=output["preds"].reshape(-1),
@@ -96,7 +96,7 @@ def main():
     model_outputs = []
     for i in range(NUM_FOLDS):
         output = np.load(os.path.join(
-            f"{MODELS_DIR}", f"fold_{i}_test_output.npz"))
+            {MODELS_DIR}, f"fold_{i}_test_output.npz"))
         model_outputs.append(output)
         report = classification_report(
             y_true=output["y"].reshape(-1), y_pred=output["preds"].reshape(-1),

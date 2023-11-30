@@ -1,3 +1,6 @@
+"""
+This script trains the model on the MoNuSeg dataset.
+"""
 import gc
 import os
 
