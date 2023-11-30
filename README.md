@@ -1,5 +1,5 @@
 # AAI3001 Large Project
-Something about MoNuSeg. TODO.
+This repository serves as an archive for a semantic segmentation task on the MoNuSeg Dataset.
 
 # Requirements
 - A CUDA enabled GPU.
@@ -17,7 +17,34 @@ pipenv install
 ```
 
 # Usage
-TODO.
+## Training
+Edit the constants at the top of `train.py` and run:
+```bash
+python train.py
+```
+
+## Evaluation 1 - Classification Metrics
+Edit the constants at the top of `validation.py` and run:
+```bash
+python validation.py
+```
+
+## Evaluation 2 - Adversarial Attacks
+### White box - Projected Gradient Descent
+Run
+```bash
+python foolbox_whitebox.py
+python foolbox_whitebox_eval.py
+```
+
+### White box - Basic Iterative Method
+Run
+```bash
+python whiteboxBIM.py
+python whiteboxBIM_eval.py
+```
+
+### Black box
 
 # Licence
 [BSD-3 Clause](LICENSE.txt)
