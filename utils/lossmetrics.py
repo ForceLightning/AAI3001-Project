@@ -1,13 +1,8 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
-
-from fastai.vision.all import FocalLossFlat, store_attr, BCEWithLogitsLossFlat
+from fastai.vision.all import store_attr, BCEWithLogitsLossFlat
 from fastai.torch_core import TensorBase, flatten_check
 from fastcore.basics import store_attr
 from fastai.metrics import Metric
-
 
 class BinaryDiceLoss():
     def __init__(
