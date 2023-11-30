@@ -21,10 +21,10 @@ from utils.foolbox_utils import (BCELinfPGD, BCEPyTorchModel,
                                  BinaryTargetedMisclassification)
 from utils.lossmetrics import BinaryDice, CombinedBCEDiceLoss
 
-VALID_DIR = "./data/MoNuSeg 2018 Training Data/MoNuSeg 2018 Training Data/"
-TEST_DIR = "./data/MoNuSegTestData/"
-MODELS_DIR = "./models/"
-OUTPUT_DIR = "./output/"
+VALID_DIR = os.path.join(os.path.dirname(__file__), "data", "MoNuSeg 2018 Training Data", "MoNuSeg 2018 Training Data")
+TEST_DIR = os.path.join(os.path.dirname(__file__), "data", "MoNuSegTestData")
+MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
+OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
 BATCH_SIZE = 1 # untested with other batch sizes
 NUM_WORKERS = 0
 NUM_FOLDS = 5

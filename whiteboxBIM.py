@@ -19,7 +19,7 @@ from utils.lossmetrics import PixelAccuracy, DiceCoefficient
 import csv
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-ROOT_DIR = "./data/MoNuSegTestData"
+ROOT_DIR = os.join.path(os.path.dirname(__file__), "data/MoNuSegTestData")
 BATCH_SIZE = 4
 NUM_WORKERS = 4
 PERSISTENT_WORKERS = True
@@ -95,11 +95,13 @@ if __name__ == "__main__":
         annotations.append(annotation)
 
     # Create directory to save images
-    if not os.path.exists("./bim_images"):
-        os.mkdir("./bim_images")
+    path = os.path.join(os.path.dirname(__file__), "bim_images")
+    if not os.path.exists(path):
+        os.mkdir(path)
 
     # Create csv file to save results
-    with open("./bim_images/results.csv", "w") as f:
+    csv_path = os.path.join(path, "results.csv")
+    with open(csv_path, "w") as f:
         writer = csv.writer(f, delimiter=",")
         writer.writerow(["Fold", "Epsilon", "Alpha", "Image",
                          "Original Pixel Mean", 
@@ -138,7 +140,7 @@ if __name__ == "__main__":
                     # Save the perturbed image
                     tensor_image = perturbed_image[0].cpu().detach().numpy().transpose(1, 2, 0)
                     tensor_image = np.clip(tensor_image, 0, 1)
-                    plt.imsave("./bim_images/{}_{}_{}_{}.png".format(k,epsilon, alpha, j), tensor_image)
+                    plt.imsave(os.path.join(path, "{}_{}_{}_{}.png".format(k,epsilon, alpha, j)), tensor_image)
 
                     # Evaluate the model on the perturbed image
                     perturbed_prediction = model(perturbed_image)
@@ -175,7 +177,7 @@ if __name__ == "__main__":
                 perb_dice_mean = sum(perturbed_dice_scores) / len(images)
 
                 # Save the mean and standard deviation of the pixel accuracy and dice coefficient
-                with open("./bim_images/results.csv", "a") as f:
+                with open(csv_path, "a") as f:
                     writer = csv.writer(f, delimiter=",")
                     writer.writerow([k, epsilon, alpha, j, 
                                     ori_pa_mean, ori_dice_mean,

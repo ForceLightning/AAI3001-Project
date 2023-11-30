@@ -27,14 +27,14 @@ from utils.dataset import MoNuSegDataset
 from utils.lossmetrics import BinaryDice, CombinedBCEDiceLoss, PixelAccuracy
 
 VALID_DIR = os.path.join(
-    os.getcwd(), "data", "MoNuSeg 2018 Training Data", "MoNuSeg 2018 Training Data")
-TEST_DIR = os.path.join(os.getcwd(), "data", "MoNuSegTestData")
-MODELS_DIR = os.path.join(os.getcwd(), "models")
+    os.path.dirname(__file__), "data", "MoNuSeg 2018 Training Data", "MoNuSeg 2018 Training Data")
+TEST_DIR = os.path.join(os.path.dirname(__file__), "data", "MoNuSegTestData")
+MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
 USE_CUDA = torch.cuda.is_available() and True
 BATCH_SIZE = 1  # untested with other batch sizes
 NUM_WORKERS = 0
 NUM_FOLDS = 5
-OUTPUT_DIR = os.path.join(os.getcwd(), "output")
+OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
 DEVICE = torch.device("cuda:0" if USE_CUDA else "cpu")
 EPSILONS = [0.0, 1e-2, 1.5e-2, 3e-2, 6e-2, 1e-1, 3e-1]
 
