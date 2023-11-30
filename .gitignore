@@ -269,3 +269,9 @@ data/
 
 # Models
 models**/
+
+# BIM folders
+bim_images/*.png
+
+#Ignore all images
+*.png

@@ -142,46 +142,11 @@ def PixelAccuracy(predictions, targets):
     return accuracy.item()
 
 def DiceCoefficient(predictions, targets):
+    # Intersecting pixels between the predicted and target masks
     inter = (predictions * targets).sum().item()
+
+    # Union of pixels between the predicted and target masks
     union = (predictions + targets).sum().item()
+    
     dice = 2 * inter / union if union > 0 else 0.0
     return dice
-
-
-
-# class PixelAccuracy:
-#     def __init__(self, prediction_mask, target_mask, device="cpu", prediction=True):
-#         self.predictions = prediction_mask.to(device)
-#         self.targets = target_mask.to(device)
-#         self.device = device
-#         self.check = prediction
-
-#     def __call__(self):
-#         # Predicted values are either 0 or 1 (Binary Mask)
-#         if self.check == True:
-#             predicted = self.predictions.float()
-#             predicted = torch.where(self.predictions > 0, torch.tensor(1.0), torch.tensor(0.0)).float()
-#         else:
-#             predicted = self.predictions.float()
-
-#         # Target values are either 0 or 1 (Binary Mask)
-#         target = self.targets.float()
-
-#         correct_pixels = (predicted == target).float().sum()
-#         total_pixels = target.numel()
-#         accuracy = correct_pixels / total_pixels
-
-#         return accuracy.item()
-    
-# class DiceCoefficient:
-#     def __init__(self, prediction_mask, target_mask, device="cpu"):
-#         self.predictions = prediction_mask.to(device)
-#         self.targets = target_mask.to(device)
-#         self.device = device
-
-#     def __call__(self):
-#         inter = (self.predictions * self.targets).sum().item()
-#         union = (self.predictions + self.targets).sum().item()
-#         dice = 2 * inter / union if union > 0 else 0.0
-#         pred = pred.to(torch.bool).to(self.device)
-
