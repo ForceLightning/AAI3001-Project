@@ -1,19 +1,25 @@
 """
 This file runs the validation of the model on the validation sets (from K-Fold) and the test set.
 """
+import os
 
 import numpy as np
+import pandas as pd
+import seaborn as sns
 import torch
 from fastai.vision.all import resnet50
 from fastai.vision.learner import create_unet_model
+from sklearn.metrics import classification_report
 from sklearn.model_selection import KFold
 from torchvision.transforms import v2
 
 from utils.dataset import MoNuSegDataset
 from utils.validation import k_fold_inference, k_fold_roc_curve
 
-VALID_DIR = "./data/MoNuSeg 2018 Training Data/MoNuSeg 2018 Training Data"
-TEST_DIR = "./data/MoNuSeg 2018 Test Data/MoNuSeg 2018 Test Data"
+VALID_DIR = os.path.join(os.path.dirname(os.path.realpath(
+    __file__)), "data", "MoNuSeg 2018 Training Data", "MoNuSeg 2018 Training Data")
+TEST_DIR = os.path.join(os.path.dirname(
+    os.path.realpath(__file__)), "data", "MoNuSegTestData")
 MODELS_DIR = "./models/"
 BATCH_SIZE = 4
 NUM_WORKERS = 4
@@ -21,6 +27,7 @@ NUM_FOLDS = 5
 
 
 def main():
+    sns.set_theme("paper", "whitegrid")
     valid_transform = v2.Compose([
         v2.ToImage(),
         v2.ToDtype(torch.float32, scale=True),
@@ -56,8 +63,14 @@ def main():
 
     model_outputs = []
     for i in range(NUM_FOLDS):
-        output = np.load(f"{MODELS_DIR}/fold_{i}_valid_output.npz")
+        output = np.load(os.path.join(
+            f"{MODELS_DIR}", f"fold_{i}_valid_output.npz"))
         model_outputs.append(output)
+        report = classification_report(
+            y_true=output["y"].reshape(-1), y_pred=output["preds"].reshape(-1),
+            target_names=["background", "nuclei"], output_dict=True)
+        report = pd.DataFrame(report)
+        print(report)
 
     k_fold_roc_curve(
         model_outputs=model_outputs,
@@ -81,8 +94,14 @@ def main():
 
     model_outputs = []
     for i in range(NUM_FOLDS):
-        output = np.load(f"{MODELS_DIR}/fold_{i}_test_output.npz")
+        output = np.load(os.path.join(
+            f"{MODELS_DIR}", f"fold_{i}_test_output.npz"))
         model_outputs.append(output)
+        report = classification_report(
+            y_true=output["y"].reshape(-1), y_pred=output["preds"].reshape(-1),
+            target_names=["background", "nuclei"], output_dict=True)
+        report = pd.DataFrame(report)
+        print(report)
 
     k_fold_roc_curve(
         model_outputs=model_outputs,

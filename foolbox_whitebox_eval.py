@@ -35,7 +35,7 @@ NUM_WORKERS = 0
 NUM_FOLDS = 5
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 DEVICE = torch.device("cuda:0" if USE_CUDA else "cpu")
-EPSILONS = [0.0, 1e-2, 3e-2, 1e-1, 3e-1]
+EPSILONS = [0.0, 1e-2, 1.5e-2, 3e-2, 6e-2, 1e-1, 3e-1]
 
 
 def get_fold_adversarial_img(output_dir, fold_idx, img_idx, eps_idx):
