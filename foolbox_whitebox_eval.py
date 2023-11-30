@@ -142,15 +142,14 @@ def main():
                     union = (pred + mask).sum().item()
                     dice = 2 * inter / union if union > 0 else 0.0
                     pred = pred.to(torch.bool).to(DEVICE)
-                    acc = PixelAccuracy(
-                        pred.to(torch.int32), mask, device=DEVICE)
+                    acc = PixelAccuracy(pred.to(torch.int32), mask)
                     image_and_mask = draw_segmentation_masks(
                         v2.ToImage()(img), pred.squeeze(0, 1), alpha=1.0, colors=["red"]
                     )
                     images_and_masks.append(image_and_mask)
                     print(
-                        f"Fold {fold_num}, img {img_idx}, eps {eps:.2e}, acc {acc.value * 100:4.2f}%, dice {dice:.4f}")
-                    writer.writerow([fold_num, img_idx, eps, acc.value, dice])
+                        f"Fold {fold_num}, img {img_idx}, eps {eps:.2e}, acc {acc * 100:4.2f}%, dice {dice:.4f}")
+                    writer.writerow([fold_num, img_idx, eps, acc, dice])
 
                 fig, _ = show(images_and_masks, [r"$\varepsilon = %.2e$" % (
                     eps) for eps in EPSILONS], title=f"Fold {fold_num}, img {img_idx}", show_fig=False)
