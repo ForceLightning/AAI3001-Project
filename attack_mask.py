@@ -24,6 +24,7 @@ from fastai.vision.all import (
     DynamicUnet,
 )
 from fastai.vision.learner import Learner, create_unet_model
+from fastai.data.all import DataLoaders, DataLoader
 from torchvision.transforms import v2
 
 # for blackbox attack
@@ -33,6 +34,9 @@ from foolbox.attacks.boundary_attack import BoundaryAttack
 from foolbox.attacks import FGSM
 from foolbox.criteria import Misclassification, TargetedMisclassification
 import foolbox as fb
+from utils.foolbox_utils import BinaryTargetedMisclassification, BCEPyTorchModel, BCELinfPGD
+import eagerpy as ep
+from tqdm.auto import tqdm
 
 
 # Set device
@@ -41,9 +45,10 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ROOT_DIR = "./data/MoNuSegTestData"
 BATCH_SIZE = 8
 NUM_WORKERS = 4
-NUM_EPOCHS = 10
-NUM_FOLDS = 5
+NUM_EPOCHS = 5
+NUM_FOLDS = 2
 PERSISTENT_WORKERS = True
+EPSILONS = [0.0, 1e-2, 1.5e-2, 3e-2, 6e-2, 1e-1, 3e-1]
 
 from torchvision.utils import draw_segmentation_masks
 import torchvision.transforms.functional as F
@@ -72,10 +77,10 @@ if __name__ == "__main__":
     )
 
     # load dataset
-    test_data = MoNuSegDataset(ROOT_DIR, transform=valid_transform)
+    test_data = MoNuSegDataset(ROOT_DIR, transform=valid_transform, train=False)
 
     # load dataloader
-    test_dl = MultiEpochsDataLoader(
+    test_dl = DataLoader(
         test_data,
         batch_size=BATCH_SIZE,
         shuffle=False,
@@ -84,6 +89,8 @@ if __name__ == "__main__":
         sampler=None,
         persistent_workers=PERSISTENT_WORKERS,
     )
+
+    test_dls = DataLoaders(test_dl)
 
     # model_path = "/models/fold_0_best"
 
@@ -110,49 +117,44 @@ if __name__ == "__main__":
     image = image.unsqueeze(0).to(DEVICE)
 
     # load model
-    # model = create_unet_model(
-    #     resnet50,
-    #     n_out=1,
-    #     img_size=(256, 256),
-    #     pretrained=True,
-    #     weights=ResNet50_Weights.DEFAULT,
-    # )
-    # learn = Learner(
-    #     dls=test_dl,
-    #     model=model,
-    #     metrics=fastai.metrics.Dice(),
-    #     cbs=[
-    #         MixedPrecision(),
-    #     ],
-    #     loss_func=BCEWithLogitsLossFlat(),
-    # )
-    # learn.load("fold_0_best")
-
-    # model.eval().to(DEVICE)
-
-    # del model.layers[-1]
-    model = models.resnet34(weights=models.ResNet34_Weights.DEFAULT).to(DEVICE)
+    model = create_unet_model(
+        resnet50,
+        n_out=1,
+        img_size=(256, 256),
+        pretrained=True,
+        weights=ResNet50_Weights.DEFAULT,
+    )
+    learn = Learner(
+        dls=test_dls,
+        model=model,
+        metrics=fastai.metrics.Dice(),
+        cbs=[
+            MixedPrecision(),
+        ],
+        loss_func=BCEWithLogitsLossFlat(),
+    )
+    learn.load("fold_0_best")
     model.eval().to(DEVICE)
+
+    del model.layers[-1]
+    # model = models.resnet34(weights=models.ResNet34_Weights.DEFAULT).to(DEVICE)
+    # model.eval().to(DEVICE)
     # run normal model
-    outputs = model(image)
-    #print(outputs.data)
-    labels, preds = torch.max(outputs.data,1) 
-    #_, preds = outputs
-    probas = torch.sigmoid(preds)
-    #print(labels)
-    #print(preds)
-    
-    labels = labels.long()
+    outputs, labels = learn.get_preds(dl=test_dls)
+    print(outputs)
+    # _, preds = outputs
+    print(labels)
+
+    # labels = labels.long()
     # print()
 
+    preprocessing = dict(mean=[0.485, 0.456, 0.406], std=[
+                            0.229, 0.224, 0.225], axis=-3)
+
     # load foolbox model
-    foolbox_model = PyTorchModel(
-        model, bounds=(-100, 100), device=DEVICE, preprocessing=None
-    )
 
     # images, labels =  samples(dataset=image, data_format="channels_first", bounds=(0, 255))
     # apply the attack
-    attack = FGSM()
     # images, labels = fb.utils.samples(fmodel=foolbox_model, dataset=test_data, data_format="channels_first")
     # attack = BoundaryAttack(step_adaptation=0.5, steps=250)
     epsilons = [np.arange(0.1, 1.1, 0.2)]
@@ -160,11 +162,26 @@ if __name__ == "__main__":
 
     # attack =fb.attacks.deepfool.LinfDeepFoolAttack()
 
-    criterion = Misclassification(labels=labels)
+    # criterion = Misclassification(labels=labels)
     # criterion = BCEWithLogitsLossFlat()
-    adversarial_images = attack(
-        model=foolbox_model, inputs=image, criterion=criterion, epsilons=epsilons[0]
+    foolbox_model = BCEPyTorchModel(model, bounds=(-100, 100), preprocessing=preprocessing)
+
+    desired_output = ep.astensor(
+        torch.tensor([[0] * 256 * 256] * BATCH_SIZE).to(DEVICE)
     )
+
+    criterion = BinaryTargetedMisclassification(desired_output)
+
+    attack = BCELinfPGD()
+
+    #testing
+    for batch_idx, (images, target_mask) in enumerate(tqdm(test_dl, position=1, desc="Batch")):
+        images = images.to(DEVICE)
+        # adversarial_images = attack(
+        #     model=foolbox_model, inputs=images, criterion=criterion, epsilons=epsilons[0]
+        # )
+        raw_advs, clipped_advs, success = attack(foolbox_model, images, criterion, epsilons=EPSILONS)
+        break
 
     model_predictions = model(adversarial_images[0][0])
     attack_labels, attack_preds = torch.max(model_predictions.data, 1)
