@@ -21,7 +21,7 @@ from utils.foolbox_utils import (BCELinfPGD, BCEPyTorchModel,
                                  BinaryTargetedMisclassification)
 from utils.lossmetrics import BinaryDice, CombinedBCEDiceLoss
 
-VALID_DIR = os.path.join(os.path.dirname(__file__), "data", "MoNuSeg 2018 Training Data", "MoNuSeg 2018 Training Data")
+VALID_DIR = os.path.join(os.path.dirname(__file__), "data", "MoNuSeg 2018 Training Data")
 TEST_DIR = os.path.join(os.path.dirname(__file__), "data", "MoNuSegTestData")
 MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")

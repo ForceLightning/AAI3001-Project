@@ -19,7 +19,7 @@ from utils.lossmetrics import PixelAccuracy, DiceCoefficient
 import csv
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-ROOT_DIR = os.join.path(os.path.dirname(__file__), "data/MoNuSegTestData")
+ROOT_DIR = os.path.join(os.path.dirname(__file__), "data", "MoNuSegTestData")
 BATCH_SIZE = 4
 NUM_WORKERS = 4
 PERSISTENT_WORKERS = True
