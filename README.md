@@ -33,8 +33,8 @@ python validation.py
 ### White box - Projected Gradient Descent
 Run
 ```bash
-python foolbox_whitebox.py
-python foolbox_whitebox_eval.py
+python whitebox_pgd.py
+python whitebox_pgd_eval.py
 ```
 
 ### White box - Basic Iterative Method
@@ -42,6 +42,13 @@ Run
 ```bash
 python whiteboxBIM.py
 python whiteboxBIM_eval.py
+```
+
+### White box - Fast Gradient Sign Method
+Run
+```bash
+python whitebox_fgsm.py
+python whitebox_fgsm_eval.py
 ```
 
 # Licence
