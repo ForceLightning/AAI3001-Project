@@ -134,11 +134,8 @@ def PixelAccuracy(predictions, targets):
     # Predicted values are either 0 or 1 (Binary Mask)
     predicted = predictions.float()
     predicted = predictions > 0.5 
-
-    print(predicted)
     # Target values are either 0 or 1 (Binary Mask)
     target = targets.float()
-    print(target)
     correct_pixels = (predicted == target).float().sum()
     total_pixels = target.numel()
     accuracy = correct_pixels / total_pixels

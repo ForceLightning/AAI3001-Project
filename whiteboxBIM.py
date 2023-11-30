@@ -76,7 +76,7 @@ if __name__ == "__main__":
         v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])    
 
-    test_data = MoNuSegDataset(ROOT_DIR, transform=valid_transform, train=False)
+    test_data = MoNuSegDataset(ROOT_DIR, transform=valid_transform)
     test_dl = MultiEpochsDataLoader(test_data, batch_size=BATCH_SIZE,
                                     shuffle=False, num_workers=NUM_WORKERS,
                                     pin_memory=True, sampler=None,
@@ -95,8 +95,6 @@ if __name__ == "__main__":
     # alphas = [0.2, 0.5]
     # num_iterations = 2
 
-    if not os.path.exists("./bim_images"):
-        os.mkdir("./bim_images")
         
     for i in range(test_data.__len__()):
         image, annotation = test_data.__getitem__(i)
@@ -106,7 +104,10 @@ if __name__ == "__main__":
 
         annotation = annotation.unsqueeze(0).to(DEVICE)
         annotations.append(annotation)
-    
+
+    if not os.path.exists("./bim_images"):
+        os.mkdir("./bim_images")
+
     with open("./bim_images/results.csv", "w") as f:
         writer = csv.writer(f, delimiter=",")
         writer.writerow(["Fold", "Epsilon", "Alpha", "Image",
@@ -114,20 +115,19 @@ if __name__ == "__main__":
                          "Original Dice Mean", 
                          "Perturbed Pixel Mean",
                          "Perturbed Dice Mean"])
-    for k in range(5):
+        
+    print("Starting model")
+    for k in tqdm(range(5)):
         model = create_unet_model(resnet50, n_out=1, img_size=(256, 256), pretrained=True, weights=ResNet50_Weights.DEFAULT)
         learn = Learner(dls=test_dl, model=model, metrics=fastai.metrics.Dice(), cbs=[MixedPrecision(),], loss_func=BCEWithLogitsLossFlat())
         learn.load("fold_"+ str(k) +"_best")
-
+        print("Loaded model fold_"+ str(k) +"_best")
         model.eval().to(DEVICE)
 
         preds, _ = learn.get_preds(dl=test_dl)
         preds = preds.to(DEVICE)
 
-        # Flatten
-        # preds = preds.view(preds.shape[0], preds.shape[2], preds.shape[3])
-
-        for i, epsilon in enumerate(epsilons, 1):
+        for i, epsilon in tqdm(enumerate(epsilons, 1)):
             print("Epsilon value:", epsilon)
 
             for alpha in alphas:
@@ -140,58 +140,53 @@ if __name__ == "__main__":
                 perturbed_dice_scores = []
 
                 for j, (image, annotation) in enumerate(zip(images, annotations), 0):
-                    print("Image:", j)
                     perturbed_image = bim_attack(model, image, annotation, epsilon, alpha, num_iterations)
+                    
+                    print("Saving Image {}".format(j))
+                    tensor_image = perturbed_image[0].cpu().detach().numpy().transpose(1, 2, 0)
+                    tensor_image = np.clip(tensor_image, 0, 1)
+                    plt.imsave("./bim_images/{}_{}_{}_{}.png".format(k,epsilon, alpha, j), tensor_image)
 
-                #     tensor_image = perturbed_image[0].cpu().detach().numpy().transpose(1, 2, 0)
-                #     tensor_image = np.clip(tensor_image, 0, 1)
-                #     plt.imsave("./bim_images/{}_{}_{}.png".format(epsilon, alpha, j), tensor_image)
-
-                #     # Evaluate the model on the perturbed image
+                    # Evaluate the model on the perturbed image
                     perturbed_prediction = model(perturbed_image)
                     perturbed_prediction = sigmoid(perturbed_prediction)
 
-                    original_prediction = preds[j] #.cpu().detach().numpy()
+                    original_prediction = preds[j]
                     
-                #     print(original_prediction.shape)
-                #     print(annotation.shape)
-                #     # Compute the pixel accuracy
+                    # Compute the pixel accuracy
                     original_accuracy = PixelAccuracy(predictions=original_prediction, targets=annotation)
                     perturbed_accuracy = PixelAccuracy(predictions=perturbed_prediction, targets=annotation)
 
                     original_total_acc.append(original_accuracy)
                     perturbed_total_acc.append(perturbed_accuracy)
 
-                    print("Original Pixel Accuracy:", original_accuracy)
-                    print("Perturbed Pixel Accuracy:", perturbed_accuracy)
+                    print("Original Accuracy: {:.2%}, Perturbed Accuracy: {:.2%}".format(original_accuracy, perturbed_accuracy))
 
+                    original_dice = DiceCoefficient(predictions=original_prediction, targets=annotation)
+                    perturbed_dice = DiceCoefficient(predictions=perturbed_prediction, targets=annotation)
 
-                #     original_dice = DiceCoefficient(predictions=original_prediction, targets=annotation)
-                #     perturbed_dice = DiceCoefficient(predictions=perturbed_prediction, targets=annotation)
+                    original_dice_scores.append(original_dice)
+                    perturbed_dice_scores.append(perturbed_dice)
 
-                #     original_dice_scores.append(original_dice)
-                #     perturbed_dice_scores.append(perturbed_dice)
+                    print("Original Dice: {:.2%}, Perturbed Dice: {:.2%}".format(original_dice, perturbed_dice))            
 
-                #     print("Original Dice:", original_dice)
-                #     print("Perturbed Dice:", perturbed_dice)             
-
-                # ori_pa_mean = sum(original_total_acc) / len(images)
-                # ori_pa_std = np.std(original_total_acc)
+                ori_pa_mean = sum(original_total_acc) / len(images)
+                ori_pa_std = np.std(original_total_acc)
                 
-                # ori_dice_mean = sum(original_dice_scores) / len(images)
-                # ori_dice_std = np.std(original_dice_scores)
+                ori_dice_mean = sum(original_dice_scores) / len(images)
+                ori_dice_std = np.std(original_dice_scores)
 
-                # perb_pa_mean = sum(perturbed_total_acc) / len(images)
-                # perb_pa_std = np.std(perturbed_total_acc)
+                perb_pa_mean = sum(perturbed_total_acc) / len(images)
+                perb_pa_std = np.std(perturbed_total_acc)
 
-                # perb_dice_mean = sum(perturbed_dice_scores) / len(images)
-                # perb_dice_std = np.std(perturbed_dice_scores)
+                perb_dice_mean = sum(perturbed_dice_scores) / len(images)
+                perb_dice_std = np.std(perturbed_dice_scores)
 
-                # with open("./bim_images/results.csv", "a") as f:
-                #     writer = csv.writer(f, delimiter=",")
-                #     writer.writerow([epsilon, alpha, 
-                #                     ori_pa_mean, ori_pa_std, ori_dice_mean, ori_dice_std,
-                #                     perb_pa_mean, perb_pa_std, perb_dice_mean, perb_dice_std])
+                with open("./bim_images/results.csv", "a") as f:
+                    writer = csv.writer(f, delimiter=",")
+                    writer.writerow([k, epsilon, alpha, 
+                                    ori_pa_mean, ori_dice_mean,
+                                    perb_pa_mean, perb_dice_mean,])
 
                 # print("Original Accuracy: {:.2%}, Perturbed Accuracy: {:.2%}".format(original_accuracy, perturbed_accuracy))
 
@@ -200,9 +195,9 @@ if __name__ == "__main__":
                     # plt.subplot(2, 2, 1)  # 2 rows, 2 columns, index 1
                     # plt.imshow(image.squeeze(0).cpu().detach().numpy().transpose(1, 2, 0))
                     # plt.title("Original Image")
-                    show(draw_segmentation_masks((image.squeeze(0) * 255).to(torch.uint8), original_prediction[0] > 0.5, alpha=1.0, colors=['red']))
-                    show(draw_segmentation_masks((perturbed_image[0] * 255).to(torch.uint8), perturbed_prediction[0] > 0.5, alpha=1.0, colors=['red']))
-                    plt.show()
+                    # show(draw_segmentation_masks((image.squeeze(0) * 255).to(torch.uint8), original_prediction[0] > 0.5, alpha=1.0, colors=['red']))
+                    # show(draw_segmentation_masks((perturbed_image[0] * 255).to(torch.uint8), perturbed_prediction[0] > 0.5, alpha=1.0, colors=['red']))
+                    # plt.show()
 
                     # plt.subplot(2, 2, 2)  # 2 rows, 2 columns, index 4
                     # plt.imshow(perturbed_image[0].cpu().detach().numpy().transpose(1, 2, 0))
